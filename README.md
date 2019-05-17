@@ -17,7 +17,5 @@ You need a security group that accepts TCP/IP connections on port 5439
 ### Start a Redshift Cluster
 
 * Specify your IAM user and configured security group
-
 * Put your `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT` values in the `dwh.cfg` file.
-
 * Once the cluster is intialized, get the `HOST` name from the instance details "endpoint" (don't include port)
