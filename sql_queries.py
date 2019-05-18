@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS staging_songs (
     artist_id VARCHAR,
     artist_latitude DECIMAL,
     artist_longitude DECIMAL,
-    artist_location VARCHAR,
-    artist_name VARCHAR,
+    artist_location VARCHAR(2560),
+    artist_name VARCHAR(2560),
     title VARCHAR,
     duration DECIMAL,
     year INT
@@ -117,14 +117,16 @@ staging_events_copy = ("""
     COPY staging_events FROM {}
     CREDENTIALS 'aws_iam_role={}'
     JSON {} 
-    REGION 'us-west-2';
+    REGION 'us-west-2'
+    COMPUPDATE OFF STATUPDATE OFF;
 """).format(config['S3']['LOG_DATA'], config['IAM_ROLE']['ARN'], config['S3']['LOG_JSONPATH'])
 
 staging_songs_copy = ("""
     COPY staging_songs FROM {}
     CREDENTIALS 'aws_iam_role={}'
     JSON 'auto'
-    REGION 'us-west-2';
+    REGION 'us-west-2'
+    COMPUPDATE OFF STATUPDATE OFF;
 """).format(config['S3']['SONG_DATA'], config['IAM_ROLE']['ARN'])
 
 # FINAL TABLES

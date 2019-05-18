@@ -23,14 +23,17 @@ def main():
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
+    print('Connecting to db')
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
     cur = conn.cursor()
+    print('Connected to db')
 
     drop_tables(cur, conn)
     create_tables(cur, conn)
 
     conn.close()
-
+    print("Connection closed")
 
 if __name__ == "__main__":
+    print("Starting create_tables.py")
     main()
