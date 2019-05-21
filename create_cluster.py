@@ -9,7 +9,7 @@ def setup_logging():
         level=logging.INFO,
         format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
         handlers=[
-            logging.FileHandler("./%(filename)s.log"),
+            logging.FileHandler("./dwh.log"),
             logging.StreamHandler()
         ])
     return logging.getLogger()
