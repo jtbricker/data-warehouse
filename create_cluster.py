@@ -95,7 +95,7 @@ def open_port(redshift, ec2, config):
         LOGGER.info("Opening port %s", port)        
         vpc = ec2.Vpc(id=myClusterProps['VpcId'])
         defaultSg = list(vpc.security_groups.all())[0]
-        print(defaultSg)
+        LOGGER.debug(defaultSg)
         defaultSg.authorize_ingress(
             GroupName=defaultSg.group_name,
             CidrIp='0.0.0.0/0',
@@ -103,6 +103,7 @@ def open_port(redshift, ec2, config):
             FromPort=int(port),
             ToPort=int(port)
         )
+
     except Exception as e:
         LOGGER.error(e)
 
@@ -124,3 +125,4 @@ if __name__ == "__main__":
 
     LOGGER.info("Starting etl.py")
     main()
+    
