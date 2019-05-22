@@ -3,39 +3,60 @@ import configparser
 import psycopg2
 from sql_queries import copy_table_queries, insert_table_queries
 
+""" Uses sql imported SQL statements to load data into tables
+"""
+
 
 def load_staging_tables(cur, conn):
-    logger.info("Running staging queries")
+    """Run the imported copy data queries
+    
+    Arguments:
+        cur {cursor} -- psycopg cursor object
+        conn {connection} -- psycopg connection object
+    """
+    LOGGER.info("Running staging queries")
     for query in copy_table_queries:
-        logger.info("Running query: %s" %query)
+        LOGGER.info("Running query: %s" %query)
         cur.execute(query)
         conn.commit()
 
 
 def insert_tables(cur, conn):
-    logger.info("Running insert queries")
+    """Run the imported insert data queries
+    
+    Arguments:
+        cur {cursor} -- psycopg cursor object
+        conn {connection} -- psycopg connection object
+    """
+    LOGGER.info("Running insert queries")
     for query in insert_table_queries:
-        logger.info("Running query: %s" %query)
+        LOGGER.info("Running query: %s" %query)
         cur.execute(query)
         conn.commit()
 
 
 def main():
+    """Setup config, establish connection to db, and call load/insert methods
+    """
+    LOGGER.info("Starting etl.py")
+
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
-    logger.info('Connecting to db')
+    LOGGER.info('Connecting to db')
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
     cur = conn.cursor()
-    logger.info('Connected to db')
+    LOGGER.info('Connected to db')
     
     load_staging_tables(cur, conn)
     insert_tables(cur, conn)
 
     conn.close()
-    logger.info("Connection closed")
+    LOGGER.info("Connection closed")
 
 if __name__ == "__main__":
+    """Setup logging
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
@@ -43,7 +64,6 @@ if __name__ == "__main__":
             logging.FileHandler("./%(filename)s.log"),
             logging.StreamHandler()
     ])
-    logger = logging.getLogger()
-
-    logger.info("Starting etl.py")
+    LOGGER = logging.getLogger()
+    
     main()

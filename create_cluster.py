@@ -4,6 +4,11 @@ import configparser
 import boto3
 from botocore.exceptions import ClientError
 
+""" Configures and returns a logger object
+
+Returns:
+    [logger] -- configured logger object
+"""
 def setup_logging():
     logging.basicConfig(
         level=logging.INFO,
@@ -15,12 +20,28 @@ def setup_logging():
     return logging.getLogger()
 
 def setup_config(config_file):
+    """ Read configuration file
+    
+    Arguments:
+        config_file {string} -- path to configuration file
+    
+    Returns:
+        dictionary -- a dictionary of dictionary of categorized config values
+    """
     LOGGER.info('Getting config from %s', config_file)
     config = configparser.ConfigParser()
     config.read(config_file)
     return config
 
 def create_ec2_client(config):
+    """Create a client to interact with AWS EC2
+    
+    Arguments:
+        config {dictionary} -- configuration object
+    
+    Returns:
+        client -- an aws ec2 client
+    """
     LOGGER.info("Creating ec2 client")    
     return boto3.resource('ec2',
                           region_name="us-east-2",
@@ -29,6 +50,14 @@ def create_ec2_client(config):
                           )
 
 def create_redshift_client(config):
+    """Create a client to interact with AWS Redshift
+    
+    Arguments:
+        config {dictionary} -- configuration object
+    
+    Returns:
+        client -- an aws redshift client
+    """
     LOGGER.info("Creating redshift client")    
     return boto3.client('redshift',
                           region_name="us-east-2",
@@ -37,6 +66,13 @@ def create_redshift_client(config):
                           )
 
 def create_redshift_instance(redshift, config, iam_role_arn):
+    """ Create a redshift cluster
+    
+    Arguments:
+        redshift {redshift client} -- boto3 redshift client object
+        config {dictionary} -- configuration object
+        iam_role_arn {string} -- amazon resource name for a configured IAM role
+    """
     LOGGER.info("Creating redshift instance")
     try:
         redshift.create_cluster(        
@@ -54,6 +90,14 @@ def create_redshift_instance(redshift, config, iam_role_arn):
         LOGGER.error(e)
 
 def create_iam_client(config):
+    """Create a client to interact with AWS IAM
+    
+    Arguments:
+        config {dictionary} -- configuration object
+    
+    Returns:
+        client -- an aws iam client
+    """
     LOGGER.info("Creating iam client")    
     return boto3.client('iam',
                           region_name="us-east-2",
@@ -62,6 +106,15 @@ def create_iam_client(config):
                           )
 
 def create_iam_role(iam, config):
+    """ Creates an AWS IAM role
+    
+    Arguments:
+        iam {boto3 iam client} -- iam client object
+        config {dictionary} -- configuration object
+    
+    Returns:
+        string -- iam role arn
+    """
     role_name = config['IAM_ROLE']['ROLE_NAME']
     try:
         LOGGER.info("Creating a new IAM Role") 
@@ -88,6 +141,13 @@ def create_iam_role(iam, config):
     return iam.get_role(RoleName=role_name)['Role']['Arn']
 
 def open_port(ec2, config, vpc_id):
+    """ Expose port for default security group
+    
+    Arguments:
+        ec2 {ec2 client} -- boto3 ec2 client object
+        config {dictionary} -- configuration object
+        vpc_id {string} -- id of your cluster's virtual private cloud
+    """
     try:
         port = config['CLUSTER']['DB_PORT']
         LOGGER.info("Opening port %s", port)        
@@ -106,12 +166,22 @@ def open_port(ec2, config, vpc_id):
         LOGGER.error(e)
 
 def pretty_redshift_props(props):
+    """ Returns an easy-to-read representation of the redshift cluster properties
+    
+    Arguments:
+        props {dictionary} -- dictionary of redshift cluster properties
+    
+    Returns:
+        array -- An array of key-value pairs of redshift properties
+    """
     keys_to_show = ["ClusterIdentifier", "NodeType", "ClusterStatus", "MasterUsername", "DBName", "Endpoint", "NumberOfNodes", 'VpcId']
     
     x = ["%s: %s" %(k, v) for k,v in props.items() if k in keys_to_show]
     return x
 
 def main():
+    """Setup configuration, create clients, create redshift cluster, and configure cluster for access
+    """
     config = setup_config('dwh.cfg')
 
     iam = create_iam_client(config)
@@ -129,6 +199,8 @@ def main():
     LOGGER.info(pretty_redshift_props(my_cluster_props))
 
 if __name__ == "__main__":
+    """Setup logging
+    """
     LOGGER = setup_logging()
 
     LOGGER.info("Starting etl.py")
