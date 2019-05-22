@@ -30,7 +30,7 @@ def create_ec2_client(config):
 
 def create_redshift_client(config):
     LOGGER.info("Creating redshift client")    
-    return boto3.resource('redshift',
+    return boto3.client('redshift',
                           region_name="us-east-2",
                           aws_access_key_id=config['AWS']['KEY'],
                           aws_secret_access_key=config['AWS']['SECRET']
@@ -40,21 +40,22 @@ def create_redshift_instance(redshift, config, iam_role_arn):
     LOGGER.info("Creating redshift instance")
     try:
         redshift.create_cluster(        
-            ClusterType=config['DWH']['DWH_CLUSTER_TYPE'],
-            NodeType=config['DWH']['DWH_NODE_TYPE'],
-            NumberOfNodes=int(config['DWH']['DWH_NUM_NODES']),
-            DBName=config['DWH']['DWH_DB'],
-            ClusterIdentifier=config['DWH']['DWH_CLUSTER_IDENTIFIER'],
-            MasterUsername=config['DWH']['DWH_DB_USER'],
-            MasterUserPassword=config['DWH']['DWH_DB_PASSWORD'],
+            ClusterType=config['CLUSTER']['CLUSTER_TYPE'],
+            NodeType=config['CLUSTER']['NODE_TYPE'],
+            NumberOfNodes=int(config['CLUSTER']['NUM_NODES']),
+            DBName=config['CLUSTER']['DB_NAME'],
+            ClusterIdentifier=config['CLUSTER']['CLUSTER_IDENTIFIER'],
+            MasterUsername=config['CLUSTER']['DB_USER'],
+            MasterUserPassword=config['CLUSTER']['DB_PASSWORD'],
             IamRoles=[iam_role_arn]  
         )
+       
     except Exception as e:
         LOGGER.error(e)
 
 def create_iam_client(config):
     LOGGER.info("Creating iam client")    
-    return boto3.resource('iam',
+    return boto3.client('iam',
                           region_name="us-east-2",
                           aws_access_key_id=config['AWS']['KEY'],
                           aws_secret_access_key=config['AWS']['SECRET']
@@ -76,7 +77,7 @@ def create_iam_role(iam, config):
         )
 
     except Exception as e:
-        print(e)
+        LOGGER.error(e)
 
     LOGGER.info("Attaching Policy")
     iam.attach_role_policy(RoleName=role_name,
@@ -86,14 +87,11 @@ def create_iam_role(iam, config):
     LOGGER.info("Get the IAM role ARN")
     return iam.get_role(RoleName=role_name)['Role']['Arn']
 
-def open_port(redshift, ec2, config):
-    cluster = config['DWH']['DWH_CLUSTER_IDENTIFIER']
-    myClusterProps = redshift.describe_clusters(ClusterIdentifier=cluster)['Clusters'][0]
-
+def open_port(ec2, config, vpc_id):
     try:
-        port = config['DWH']['DWH_PORT']
+        port = config['CLUSTER']['DB_PORT']
         LOGGER.info("Opening port %s", port)        
-        vpc = ec2.Vpc(id=myClusterProps['VpcId'])
+        vpc = ec2.Vpc(id=vpc_id)
         defaultSg = list(vpc.security_groups.all())[0]
         LOGGER.debug(defaultSg)
         defaultSg.authorize_ingress(
@@ -107,6 +105,12 @@ def open_port(redshift, ec2, config):
     except Exception as e:
         LOGGER.error(e)
 
+def pretty_redshift_props(props):
+    keys_to_show = ["ClusterIdentifier", "NodeType", "ClusterStatus", "MasterUsername", "DBName", "Endpoint", "NumberOfNodes", 'VpcId']
+    
+    x = ["%s: %s" %(k, v) for k,v in props.items() if k in keys_to_show]
+    return x
+
 def main():
     config = setup_config('dwh.cfg')
 
@@ -118,7 +122,11 @@ def main():
 
     ec2 = create_ec2_client(config)
 
-    open_port(redshift, ec2, config)
+    my_cluster_props = redshift.describe_clusters(ClusterIdentifier=config['CLUSTER']['CLUSTER_IDENTIFIER'])['Clusters'][0]
+    vpc_id = my_cluster_props['VpcId']
+    open_port(ec2, config, vpc_id)
+
+    LOGGER.info(pretty_redshift_props(my_cluster_props))
 
 if __name__ == "__main__":
     LOGGER = setup_logging()
